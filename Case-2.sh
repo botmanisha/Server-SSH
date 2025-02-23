@@ -1,28 +1,32 @@
 #!/bin/bash
-configurar_ip() {
-    while true; do
-        echo "Interfaces disponibles: "
-	mostrar_interfaces() {
-   		 ip -o link show | cut -d' ' -f2 | tr -d ':'
-	}
-        mostrar_interfaces
-      
-	read -p "Seleccione la interfaz correcta (enp0s3|enp0s8): " interfaz
+ip_actual=$(hostname -I | tr " " "\n" | grep -E "^192\.168\." | head -n1)
 
-        conexion=$(comprobar_conexion "$interfaz")
+if [ -z "$ip_actual" ]; then
+	echo "No se encontró ninguna IP en la red 192.168.x.x"
+fi
 
-        if [[ "$conexion" == "NAT" ]]; then
-            echo "La interfaz $interfaz está configurada con NAT."
-        elif [[ "$conexion" == "Adaptador puente" ]]; then
-            echo "La interfaz $interfaz está configurada con Adaptador puente."
-        else
-            echo "Interfaz no reconocida. Por favor, intente nuevamente."
-            continue
-        fi
+echo "Tu IP actual en la red interna es: $ip_actual"
 
-        # Preguntar si la interfaz seleccionada es la correcta
-        read -p "¿Es esta la interfaz correcta? (s/n): " respuesta
-        if [[ "$respuesta" == "s" || "$respuesta" == "S" ]]; then
-            break
-        fi
-    done
+read -p "¿Quieres cambiar la IP? (Y/N): " respuesta
+
+if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
+	read -p "Introduce la nueva IP (formato 192.168.x.x): " ip_nueva
+	read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
+	read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
+
+	interfaz=$(ip a | grep -B2 "$ip_actual" | head -n1 | tr " " ":" | cut -d: -f3)
+
+	if [ -z "$interfaz" ]; then
+		echo "Error detectando la interfaz."
+	fi
+
+	echo "Configurando nueva IP en la interfaz $interfaz."
+
+	sudo ip addr flush dev $interfaz
+	sudo ip addr add $ip_nueva/$mascara dev $interfaz
+	sudo ip route add default via $puerta_enlace
+
+	echo "Nueva IP configurada: $ip_nueva"
+else
+	echo "No se han realizado cambios"
+fi
