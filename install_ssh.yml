@@ -1,0 +1,13 @@
+- name: Instalar y habilitar SSH
+  hosts: ssh_servers
+  become: yes
+  tasks:
+    - name: Instalar OpenSSH Server
+      apt:
+        name: openssh-server
+        state: present
+    - name: Habilitar y arrancar SSH
+      systemd:
+        name: ssh
+        enabled: yes
+        state: started

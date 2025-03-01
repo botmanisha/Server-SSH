@@ -71,11 +71,10 @@ EOF
       echo "Contenedores en ejecución:"
       docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Ports}}\t{{.Status}}"
       echo "Iniciando el contenedor docker_ssh... "
+      echo -e "Ingrese dentro del contenedor el siguiente comando para comprobar la instalación del servicio SSH\n <ps aux | grep ssh> :)"
       docker exec -it docker_ssh /bin/bash
-      ps aux | grep sshd
-
-
 }
+
 instalar_ssh_ansible() {
       read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
       read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
