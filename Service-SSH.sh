@@ -127,8 +127,16 @@ while true; do
                         done
                         ;;
 		--3)
+			echo "Iniciando el servicio SSH..."
+			sudo systemctl start ssh
+			sudo systemctl enable ssh
+			echo "Servicio SSH iniciado correctamente"
                 	;;
    		--4)
+			echo "Deteniendo el servicio SSH..."
+                        sudo systemctl stop ssh
+                        sudo systemctl disble ssh
+                        echo "Servicio SSH detenido correctamente"
                 	;;
    		--5)
                 	;;
