@@ -23,13 +23,14 @@ menu(){
 }
 menu
 instalacion_docker(){
-       sudo apt install apt-transport-https ca-certificates curl software-properties-common &> /dev/null
-       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - &> /dev/null
-       sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" &> /dev/null
-       sudo apt update &> /dev/null
-       sudo apt install docker-ce -y &> /dev/null
-       apt-cache policy docker-ce &> /dev/null
+       sudo apt install apt-transport-https ca-certificates curl software-properties-common -y #&> /dev/null
+       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - #&> /dev/null
+       sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" #&> /dev/null
+       sudo apt update #&> /dev/null
+       apt-cache policy docker-ce #&> /dev/null
+       sudo apt install docker-ce -y #&> /dev/null
        sudo usermod -aG docker $USER
+       su - $USER
        echo "Docker ha sido instalado correctamente."
 }
 comprobar_instalacion_docker() {
@@ -39,7 +40,9 @@ comprobar_instalacion_docker() {
        else
 	     echo "Instalando SSH con Docker..."
              instalacion_docker
-	     version = $(docker --versiom)
+             sudo systemctl start docker
+	     sudo systemctl enable docker
+	     version = $(docker --version)
 	     echo "Docker instalado correctamente: $version"
        fi
 }
@@ -53,43 +56,50 @@ RUN apt-get update && \\
     apt-get clean
 RUN mkdir /var/run/sshd
 EXPOSE 22
+RUN useradd -m -s /bin/bash usuario && \\
+    echo 'usuario:contraseña' | chpasswd && \\
+    adduser usuario sudo
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \\
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \\
+    echo "AllowUsers usuario" >> /etc/ssh/sshd_config
 CMD ["/usr/sbin/sshd", "-D"]
 EOF
       echo "Construyendo la imagen Docker: SSH_IMAGE"
-      docker build -t SSH_IMAGE .
-      echo "Imágenes Docker disponibles:"
-      docker images | grep SSH_IMAGE
+      docker build -t ssh_image .
       echo "Ejecutando un contenedor con la imagen SSH_IMAGE..."
-      docker run -d -p 2222:22 --name DOCKER_SSH SSH_IMAGE
+      docker run -d -p 2222:22 --name docker_ssh ssh_image
       echo "Contenedores en ejecución:"
-      docker ps | grep -E 'DOCKER_SSH'
+      docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Ports}}\t{{.Status}}"
+      echo "Iniciando el contenedor docker_ssh... "
+      docker exec -it docker_ssh /bin/bash
+      ps aux | grep sshd
+
+
 }
 instalar_ssh_ansible() {
-    read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
-    read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
-
-    if ! ansible --version &> /dev/null; then
-        echo "Ansible no está instalado. Instalándolo..."
-        sudo apt update && sudo apt install ansible -y
-    fi
-    echo "[ssh_servers]" > hosts.ini
-    echo "$SERVER_IP ansible_user=$SERVER_USER ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
-
-    cat > install_ssh.yml <<EOL
-        - name: Instalar y habilitar SSH
-          hosts: ssh_servers
-          become: yes
-          tasks:
-            - name: Instalar OpenSSH Server
-              apt:
-                name: openssh-server
-                state: present
-            - name: Habilitar y arrancar SSH
-              systemd:
-                name: ssh
-                enabled: yes
-                state: started
-        EOL
+      read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
+      read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
+      if ! ansible --version &> /dev/null; then
+           echo "Ansible no está instalado. Instalándolo..."
+           sudo apt update && sudo apt install ansible -y
+      fi
+      echo "[ssh_servers]" > hosts.ini
+      echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
+      cat > install_ssh.yml <<EOL
+- name: Instalar y habilitar SSH
+  hosts: ssh_servers
+  become: yes
+  tasks:
+    - name: Instalar OpenSSH Server
+      apt:
+        name: openssh-server
+        state: present
+    - name: Habilitar y arrancar SSH
+      systemd:
+        name: ssh
+        enabled: yes
+        state: started
+EOL
     ansible-playbook -i hosts.ini install_ssh.yml --ask-become-pass
     echo "Servicio SSH instalado correctamente con Ansible."
 }
@@ -158,10 +168,10 @@ case $formados in
         ;;
     --3)
         echo "Desinstalando SSH con Docker..."
-        docker stop DOCKER_SSH
-        docker rm DOCKER_SSH
+        docker stop docker_ssh
+        docker rm docker_ssh
         echo "ELiminando la imagen SSH_IMAGE..."
-	docker rmi SSH_IMAGE
+	docker rmi ssh_image
 	echo "Contenedor Docker SSH detenido y eliminado"
 	exit 0
         ;;
