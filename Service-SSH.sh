@@ -42,7 +42,7 @@ comprobar_instalacion_docker() {
              instalacion_docker
              sudo systemctl start docker
 	     sudo systemctl enable docker
-	     version = $(docker --version)
+	     version=$(docker --version)
 	     echo "Docker instalado correctamente: $version"
        fi
 }
@@ -76,15 +76,41 @@ EOF
 }
 
 instalar_ssh_ansible() {
-      read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
-      read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
-      if ! ansible --version &> /dev/null; then
-           echo "Ansible no está instalado. Instalándolo..."
-           sudo apt update && sudo apt install ansible -y
-      fi
-      echo "[ssh_servers]" > hosts.ini
-      echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
-      cat > install_ssh.yml <<EOL
+read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
+read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
+if ! systemctl is-active --quiet ssh; then
+     echo "El servicio SSH no está instalado o no está activo. Instalando SSH..."
+     sudo apt update && sudo apt install openssh-server -y
+     echo "SSH ha sido instalado correctamente."
+else
+     echo "El servicio SSH ya está instalado y activo."
+fi
+
+if ! sudo ufw status | grep -q "Status: active"; then
+     echo "UFW no está activo. Activando UFW..."
+     sudo ufw enable
+else
+     echo "UFW ya está activo."
+fi
+
+if ! sudo ufw status | grep -q "22/tcp"; then
+     echo "El puerto 22 no está permitido. Permitido ahora..."
+     sudo ufw allow 22/tcp
+else
+     echo "El puerto $PUERTO_SSH ya está permitido."
+fi
+     sudo ufw reload
+     echo "Reglas actuales de UFW:"
+     sudo ufw status
+
+if ! ansible --version &> /dev/null; then
+     echo "Ansible no está instalado. Instalándolo..."
+     sudo apt update && sudo apt install ansible -y
+     echo "Ansible ha sido instalado correctamente."
+fi
+     echo "[ssh_servers]" > hosts.ini
+     echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
+     cat > install_ssh.yml <<EOL
 - name: Instalar y habilitar SSH
   hosts: ssh_servers
   become: yes
@@ -117,6 +143,7 @@ case $forma in
     --1)
         echo "Instalando SSH con comandos..."
         sudo apt update && sudo apt install openssh-server -y
+
         echo "SSH se ha instalado correctamente"
         exit 0
         ;;
@@ -264,6 +291,7 @@ logs(){
                 read -p "Introduce el tipo de log (error, warning, info): " tipo
                 journalctl -u ssh | grep -i "$tipo"
                 exit 0
+		;;
             --3)
                 echo "Saliendo..."
                 exit 0

@@ -1,0 +1,13 @@
+- name: Desinstalar SSH
+  hosts: ssh_servers
+  become: yes
+  tasks:
+    - name: Detener y deshabilitar SSH
+      systemd:
+        name: ssh
+        state: stopped
+        enabled: no
+    - name: Desinstalar OpenSSH Server
+      apt:
+        name: openssh-server
+        state: absent
