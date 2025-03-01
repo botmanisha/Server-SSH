@@ -265,6 +265,40 @@ while true; do
 			break
                 	;;
    		--5)
+        echo " ---------------------------------"
+        echo " Consulta de logs "
+        echo " ---------------------------------"
+        echo " --1 Logs por fecha "
+        echo " --2 Logs por tipo "
+        echo " --3 Salir "
+        echo " ---------------------------------"
+        while true; do
+        read -p "Introduce la forma a desinstalar (--[1-3]): " consulta
+        case $consulta in
+            --1)
+            echo "Logs por fecha: "
+            echo " ---------------------------------"
+            read -p "Introduce la fecha (YYYY-MM-DD): " fecha
+            journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
+            exit 0
+                ;;
+            --2)
+            echo "Logs por tipo: "
+            echo " ---------------------------------"
+            read -p "Introduce el tipo de log (error, warning, info): " tipo
+            journalctl -u ssh | grep -i "$tipo"
+            exit 0
+                ;;
+            --3)
+                echo "Saliendo..."
+                exit 0
+                ;;
+            *)
+                echo "Opción inválida, elija --n"
+                ;;
+        esac
+        read -p "Presione Enter para continuar..."
+        done
                 	;;
 		--6)
 		    configurar_ip
