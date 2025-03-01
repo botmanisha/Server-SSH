@@ -163,6 +163,29 @@ case $formados in
         ;;
     --2)
         echo "Desinstalando SSH con Ansible..."
+    read -p "Ingrese la IP del servidor donde desinstalar SSH: " ip_servidor
+    read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
+
+    echo "[ssh_servers]" > hosts.ini
+    echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" > hosts.ini
+
+    cat > uninstall_ssh.yml <<EOL
+- name: Desinstalar SSH
+  hosts: ssh_servers
+  become: yes
+  tasks:
+    - name: Detener y deshabilitar SSH
+      systemd:
+        name: ssh
+        state: stopped
+        enabled: no
+    - name: Desinstalar OpenSSH Server
+      apt:
+        name: openssh-server
+        state: absent
+EOL
+    ansible-playbook -i hosts.ini uninstall_ssh.yml --ask-become-pass
+    echo "Servicio SSH desinstalado correctamente con Ansible."
         exit 0
         ;;
     --3)
@@ -241,6 +264,40 @@ while true; do
 			break
                 	;;
    		--5)
+        echo " ---------------------------------"
+        echo " Consulta de logs "
+        echo " ---------------------------------"
+        echo " --1 Logs por fecha "
+        echo " --2 Logs por tipo "
+        echo " --3 Salir "
+        echo " ---------------------------------"
+        while true; do
+        read -p "Introduce la forma a desinstalar (--[1-3]): " consulta
+        case $consulta in
+            --1)
+            echo "Logs por fecha: "
+            echo " ---------------------------------"
+            read -p "Introduce la fecha (YYYY-MM-DD): " fecha
+            journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
+            exit 0
+                ;;
+            --2)
+            echo "Logs por tipo: "
+            echo " ---------------------------------"
+            read -p "Introduce el tipo de log (error, warning, info): " tipo
+            journalctl -u ssh | grep -i "$tipo"
+            exit 0
+                ;;
+            --3)
+                echo "Saliendo..."
+                exit 0
+                ;;
+            *)
+                echo "Opción inválida, elija --n"
+                ;;
+        esac
+        read -p "Presione Enter para continuar..."
+        done
                 	;;
 		--6)
 		    configurar_ip
