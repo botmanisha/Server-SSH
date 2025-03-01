@@ -21,8 +21,85 @@ menu(){
 	echo    " --8 Salir "
 	echo    " ---------------------------------"
 }
+instalacion() { 
+        echo " ---------------------------------"
+        echo " Instalación servicio SSH "
+        echo " ---------------------------------"
+        echo " --1 Instalar con comandos "
+        echo " --2 Instalar con Ansible "
+        echo " --3 Instalar con Docker "
+        echo " --4 Salir "
+        echo " ---------------------------------"
+while true; do
+read -p "Introduce la forma a instalar (--[1-4]): " forma
+case $forma in
+    --1)
+        echo "Instalando SSH con comandos..."
+        sudo apt update && sudo apt install openssh-server -y
+        echo "SSH se ha instalado correctamente"
+        exit 0
+        ;;
+    --2)
+        echo "Instalando SSH con Ansible..."
+        exit 0
+        ;;
+    --3)
+        echo "Instalando SSH con Docker..."
+        exit 0
+        ;;
+    --4)
+        echo "Saliendo..."
+        exit 0
+        ;;
+      *)
+        echo "Opción inválida, elija --n"
+        ;;
+esac
+read -p "Presione Enter para continuar..."
+done
+}
+
+desinstalacion(){
+        echo " ---------------------------------"
+        echo " Desinstalación servicio SSH "
+        echo " ---------------------------------"
+        echo " --1 Desinstalar con comandos "
+        echo " --2 Desinstalar con Ansible "
+        echo " --3 Desinstalar con Docker "
+        echo " --4 Salir "
+        echo " ---------------------------------"
+while true; do
+read -p "Introduce la forma a desinstalar (--[1-4]): " formados
+case $formados in
+    --1)
+        echo "Desinstalando SSH con comandos..."
+        sudo systemctl stop ssh
+        sudo apt remove --purge openssh-server -y
+        echo "SSH se ha desinstalado correctamente"
+        exit 0
+        ;;
+    --2)
+        echo "Desinstalando SSH con Ansible..."
+        exit 0
+        ;;
+    --3)
+        echo "Desinstalando SSH con Docker..."
+        exit 0
+        ;;
+    --4)
+        echo "Saliendo..."
+        exit 0
+        ;;
+      *)
+        echo "Opción inválida, elija --n"
+        ;;
+esac
+read -p "Presione Enter para continuar..."
+done
+}
+
 configurar_ip(){
-	read -p "¿Quieres cambiar la configuración de la interfaz de red? (Y/N): " respuesta
+	read -p "¿Quieres cambiar la configuración de la interfaz de red? [Y|N]: " respuesta
 
 	if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
 		echo "Interfaces de red disponibles:"
@@ -36,7 +113,7 @@ configurar_ip(){
 		read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
 		read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
 		echo "Configurando nueva IP en la interfaz $interfaz..."
-		sudo ip addr flush dev $interfaz
+		sudo ip addr flush dev $interfaz && sudo rm /etc/netplan/* &> /dev/null
 		sudo ip addr add $ip_nueva/$mascara dev $interfaz
 		sudo ip route add default via $puerta_enlace
 
@@ -52,80 +129,13 @@ while true; do
 	read -p "¿Qué acción deseas realizar? (--[1-8]): " orden
 	case $orden in
 		--1)
-			echo " ---------------------------------"
-			echo " Instalación servicio SSH "
-			echo " ---------------------------------"
-			echo " --1 Instalar con comandos "
-			echo " --2 Instalar con Ansible "
-			echo " --3 Instalar con Docker "
-			echo " --4 Salir "
-			echo " ---------------------------------"
-			while true; do
-				read -p "Introduce la forma a instalar (--[1-4]): " forma
-				case $forma in
-					--1)
-						echo "Instalando SSH con comandos..."
-						sudo apt update && sudo apt install openssh-server -y
-						echo "SSH se ha instalado correctamente"
-						exit 0
-						;;
-					--2)
-						echo "Instalando SSH con Ansible..."
-						exit 0
-						;;
-					--3)
-						echo "Instalando SSH con Docker..."
-						exit 0
-						;;
-					--4)
-						echo "Saliendo..."
-                        			exit 0
-						;;
-					*)
-						echo "Opción inválida, elija --n"
-						;;
-				esac
-				read -p "Presione Enter para continuar..."
-			done
-			;;
+		    instalacion
+		    break
+		    ;;
 		--2)
-                        echo " ---------------------------------"
-                        echo " Desinstalación servicio SSH "
-                        echo " ---------------------------------"
-                        echo " --1 Desinstalar con comandos "
-                        echo " --2 Desinstalar con Ansible "
-                        echo " --3 Desinstalar con Docker "
-                        echo " --4 Salir "
-                        echo " ---------------------------------"
-                        while true; do
-                                read -p "Introduce la forma a desinstalar (--[1-4]): " formados
-                                case $formados in
-                                        --1)
-                                                echo "Desinstalando SSH con comandos..."
-						sudo systemctl stop ssh
-                                                sudo apt remove --purge openssh-server -y
-                                                echo "SSH se ha desinstalado correctamente"
-                                                exit 0
-                                                ;;
-                                        --2)
-                                                echo "Desinstalando SSH con Ansible..."
-                                                exit 0
-                                                ;;
-                                        --3)
-                                                echo "Desinstalando SSH con Docker..."
-                                                exit 0
-                                                ;;
-                                        --4)
-                                                echo "Saliendo..."
-                                                exit 0
-                                                ;;
-                                        *)
-                                                echo "Opción inválida, elija --n"
-                                                ;;
-                                esac
-                                read -p "Presione Enter para continuar..."
-                        done
-                        ;;
+		    desintalacion
+	            break
+                    ;;
 		--3)
 			echo "Iniciando el servicio SSH..."
 			sudo systemctl start ssh
@@ -143,9 +153,9 @@ while true; do
    		--5)
                 	;;
 		--6)
-			configurar_ip
-			break
-			;;
+		    configurar_ip
+		    break 
+		    ;;
 		--7)
 			;;
         	--8)
