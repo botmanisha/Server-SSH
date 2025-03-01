@@ -120,21 +120,25 @@ case $forma in
         echo "SSH se ha instalado correctamente"
         exit 0
         ;;
+
     --2)
         echo "Instalando SSH con Ansible..."
         instalar_ssh_ansible
         exit 0
         ;;
+
     --3)
 	comprobar_instalacion_docker
 	echo "Procediendo a la instalación del servicio SSH mediante docker..."
 	instalacion_ssh_docker
 	exit 0
         ;;
+
     --4)
         echo "Saliendo..."
         exit 0
         ;;
+
       *)
         echo "Opción inválida, elija --n"
         ;;
@@ -161,6 +165,7 @@ case $formados in
         echo "SSH se ha desinstalado correctamente"
         exit 0
         ;;
+
     --2)
         echo "Desinstalando SSH con Ansible..."
     read -p "Ingrese la IP del servidor donde desinstalar SSH: " ip_servidor
@@ -188,6 +193,7 @@ EOL
     echo "Servicio SSH desinstalado correctamente con Ansible."
         exit 0
         ;;
+
     --3)
         echo "Desinstalando SSH con Docker..."
         docker stop docker_ssh
@@ -197,6 +203,7 @@ EOL
 	echo "Contenedor Docker SSH detenido y eliminado"
 	exit 0
         ;;
+
     --4)
         echo "Saliendo..."
         exit 0
@@ -210,60 +217,30 @@ done
 }
 
 configurar_ip(){
-        read -p "¿Quieres cambiar la configuración de la interfaz de red? [Y/N]: " respuesta
-
-        if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
-                echo "Interfaces de red disponibles:"
-                ip -o link show | tr " " ":" | cut -d: -f3
-                read -p "Introduce el nombre de la interfaz: " interfaz
-                if ! ip link show $interfaz &> /dev/null; then
-                        echo "Error: La interfaz $interfaz no exite."
-                        exit 1
-                fi
-                read -p "Introduce la nueva dirección IP (formato 192.168.x.x): " ip_nueva
-                read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
-                read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
-                echo "Configurando nueva IP en la interfaz $interfaz..."
-                sudo ip addr flush dev $interfaz && sudo rm /etc/netplan/* &> /dev/null
-                sudo ip addr add $ip_nueva/$mascara dev $interfaz
-                sudo ip route add default via $puerta_enlace
-
-                echo "Nueva IP configurada en $interfaz: $ip_nueva/$mascara"
-                echo "Puerta de enlace: $puerta_enlace"
-        else
-                echo "No se han realizado cambios en la red"
+read -p "¿Quieres cambiar la configuración de la interfaz de red? [Y/N]: " respuesta
+if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
+        echo "Interfaces de red disponibles:"
+        ip -o link show | tr " " ":" | cut -d: -f3
+        read -p "Introduce el nombre de la interfaz: " interfaz
+        if ! ip link show $interfaz &> /dev/null; then
+             echo "Error: La interfaz $interfaz no exite."
+             exit 1
         fi
+        read -p "Introduce la nueva dirección IP (formato 192.168.x.x): " ip_nueva
+        read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
+        read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
+        echo "Configurando nueva IP en la interfaz $interfaz..."
+        sudo ip addr flush dev $interfaz && sudo rm /etc/netplan/* &> /dev/null
+        sudo ip addr add $ip_nueva/$mascara dev $interfaz
+        sudo ip route add default via $puerta_enlace
+        echo "Nueva IP configurada en $interfaz: $ip_nueva/$mascara"
+        echo "Puerta de enlace: $puerta_enlace"
+else
+        echo "No se han realizado cambios en la red"
+fi
 }
 
-
-while true; do
-	echo "¡Bienvenido!"
-	read -p "¿Qué acción deseas realizar? (--[1-8]): " orden
-	case $orden in
-		--1)
-		    instalacion
-		    break
-		    ;;
-		--2)
-		    desinstalacion
-		    echo 'Desintalación completada con exito.'
-	            break
-                    ;;
-		--3)
-			echo "Iniciando el servicio SSH..."
-			sudo systemctl start ssh
-			sudo systemctl enable ssh
-			echo "Servicio SSH iniciado correctamente"
-			break
-                	;;
-   		--4)
-			echo "Deteniendo el servicio SSH..."
-                        sudo systemctl stop ssh
-                        sudo systemctl disable ssh
-                        echo "Servicio SSH detenido correctamente"
-			break
-                	;;
-   		--5)
+logs(){
         echo " ---------------------------------"
         echo " Consulta de logs "
         echo " ---------------------------------"
@@ -275,19 +252,18 @@ while true; do
         read -p "Introduce la forma a desinstalar (--[1-3]): " consulta
         case $consulta in
             --1)
-            echo "Logs por fecha: "
-            echo " ---------------------------------"
-            read -p "Introduce la fecha (YYYY-MM-DD): " fecha
-            journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
-            exit 0
+                echo "Logs por fecha: "
+                echo " ---------------------------------"
+                read -p "Introduce la fecha (YYYY-MM-DD): " fecha
+                journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
+                exit 0
                 ;;
             --2)
-            echo "Logs por tipo: "
-            echo " ---------------------------------"
-            read -p "Introduce el tipo de log (error, warning, info): " tipo
-            journalctl -u ssh | grep -i "$tipo"
-            exit 0
-                ;;
+                echo "Logs por tipo: "
+                echo " ---------------------------------"
+                read -p "Introduce el tipo de log (error, warning, info): " tipo
+                journalctl -u ssh | grep -i "$tipo"
+                exit 0
             --3)
                 echo "Saliendo..."
                 exit 0
@@ -298,20 +274,60 @@ while true; do
         esac
         read -p "Presione Enter para continuar..."
         done
-                	;;
+}
+
+
+while true; do
+	echo "¡Bienvenido!"
+	read -p "¿Qué acción deseas realizar? (--[1-8]): " orden
+	case $orden in
+		--1)
+		    instalacion
+		    break
+		    ;;
+
+	        --2)
+		    desinstalacion
+		    echo 'Desintalación completada con exito.'
+	            break
+                    ;;
+
+		--3)
+		   echo "Iniciando el servicio SSH..."
+		   sudo systemctl start ssh
+		   sudo systemctl enable ssh
+	           echo "Servicio SSH iniciado correctamente"
+		   break
+               	   ;;
+
+   		--4)
+		   echo "Deteniendo el servicio SSH..."
+                   sudo systemctl stop ssh
+                   sudo systemctl disable ssh
+                   echo "Servicio SSH detenido correctamente"
+           	   break
+               	   ;;
+
+   		--5)
+		   logs
+	           ;;
+
 		--6)
 		    configurar_ip
-		    break 
+		    break
 		    ;;
+
 		--7)
-			;;
+
+		    ;;
+
         	--8)
-			echo  "Saliendo..."
-			break
-                	;;
-        	*)
-			echo "Opción inválida, elija --n"
-	        	;;
+		    echo  "Saliendo..."
+		    break
+                    ;;
+                  *)
+		    echo "Opción inválida, elija --n"
+	            ;;
 	esac
 	read -p "Presione Enter para continuar..."
 done
