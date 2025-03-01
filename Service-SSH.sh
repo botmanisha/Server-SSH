@@ -4,10 +4,10 @@ menu(){
 	echo    "     DATOS DE RED DEL EQUIPO      "
 	echo    " ---------------------------------"
 	echo	" Direcciones IP: "
-	ip -o -4 addr show | cut -d " " -f2,7 | sed "s/^/ /"
+		ip -o -4 addr show | cut -d " " -f2,7 | sed "s/^/ /"
 	echo    " ---------------------------------"
 	echo	" Estado del servicio SSH: "
-	systemctl is-active ssh | sed "s/^/ /"
+		systemctl is-active ssh | sed "s/^/ /"
 	echo	" ---------------------------------"
 	echo	"            SERVICIO SSH          "
 	echo    " ---------------------------------"
@@ -21,7 +21,50 @@ menu(){
 	echo    " --8 Salir "
 	echo    " ---------------------------------"
 }
-instalacion() { 
+menu
+instalacion_docker(){
+       sudo apt install apt-transport-https ca-certificates curl software-properties-common &> /dev/null
+       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - &> /dev/null
+       sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" &> /dev/null
+       sudo apt update &> /dev/null
+       sudo apt install docker-ce -y &> /dev/null
+       apt-cache policy docker-ce &> /dev/null
+       sudo usermod -aG docker $USER
+       echo "Docker ha sido instalado correctamente."
+}
+comprobar_instalacion_docker() {
+       docker images &> /dev/null
+       if [ $? -eq 0 ]; then
+             echo "Docker está instalado y funcionando correctamente."
+       else
+	     echo "Instalando SSH con Docker..."
+             instalacion_docker
+	     version = $(docker --versiom)
+	     echo "Docker instalado correctamente: $version"
+       fi
+}
+
+instalacion_ssh_docker(){
+      echo "Creando el Dockerfile..."
+      cat <<EOF > Dockerfile
+FROM ubuntu:latest
+RUN apt-get update && \\
+    apt-get install -y openssh-server && \\
+    apt-get clean
+RUN mkdir /var/run/sshd
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
+EOF
+      echo "Construyendo la imagen Docker: SSH_IMAGE"
+      docker build -t SSH_IMAGE .
+      echo "Imágenes Docker disponibles:"
+      docker images | grep SSH_IMAGE
+      echo "Ejecutando un contenedor con la imagen SSH_IMAGE..."
+      docker run -d -p 2222:22 --name DOCKER_SSH SSH_IMAGE
+      echo "Contenedores en ejecución:"
+      docker ps | grep -E 'DOCKER_SSH'
+}
+instalacion(){
         echo " ---------------------------------"
         echo " Instalación servicio SSH "
         echo " ---------------------------------"
@@ -44,8 +87,10 @@ case $forma in
         exit 0
         ;;
     --3)
-        echo "Instalando SSH con Docker..."
-        exit 0
+	comprobar_instalacion_docker
+	echo "Procediendo a la instalación del servicio SSH mediante docker..."
+	instalacion_ssh_docker
+	exit 0
         ;;
     --4)
         echo "Saliendo..."
@@ -58,7 +103,6 @@ esac
 read -p "Presione Enter para continuar..."
 done
 }
-
 desinstalacion(){
         echo " ---------------------------------"
         echo " Desinstalación servicio SSH "
@@ -84,7 +128,12 @@ case $formados in
         ;;
     --3)
         echo "Desinstalando SSH con Docker..."
-        exit 0
+        docker stop DOCKER_SSH
+        docker rm DOCKER_SSH
+        echo "ELiminando la imagen SSH_IMAGE..."
+	docker rmi SSH_IMAGE
+	echo "Contenedor Docker SSH detenido y eliminado"
+	exit 0
         ;;
     --4)
         echo "Saliendo..."
@@ -99,31 +148,32 @@ done
 }
 
 configurar_ip(){
-	read -p "¿Quieres cambiar la configuración de la interfaz de red? [Y|N]: " respuesta
+        read -p "¿Quieres cambiar la configuración de la interfaz de red? [Y/N]: " respuesta
 
-	if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
-		echo "Interfaces de red disponibles:"
-		ip -o link show | tr " " ":" | cut -d: -f3
-		read -p "Introduce el nombre de la interfaz: " interfaz
-		if ! ip link show $interfaz &> /dev/null; then
-			echo "Error: La interfaz $interfaz no exite."
-			exit 1
-		fi
-		read -p "Introduce la nueva dirección IP (formato 192.168.x.x): " ip_nueva
-		read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
-		read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
-		echo "Configurando nueva IP en la interfaz $interfaz..."
-		sudo ip addr flush dev $interfaz && sudo rm /etc/netplan/* &> /dev/null
-		sudo ip addr add $ip_nueva/$mascara dev $interfaz
-		sudo ip route add default via $puerta_enlace
+        if [[ "$respuesta" == "Y" || "$respuesta" == "y" ]]; then
+                echo "Interfaces de red disponibles:"
+                ip -o link show | tr " " ":" | cut -d: -f3
+                read -p "Introduce el nombre de la interfaz: " interfaz
+                if ! ip link show $interfaz &> /dev/null; then
+                        echo "Error: La interfaz $interfaz no exite."
+                        exit 1
+                fi
+                read -p "Introduce la nueva dirección IP (formato 192.168.x.x): " ip_nueva
+                read -p "Introduce la máscara de red (ej. 255.255.255.0): " mascara
+                read -p "Introduce la puerta de enlace (ej. 192.168.1.1): " puerta_enlace
+                echo "Configurando nueva IP en la interfaz $interfaz..."
+                sudo ip addr flush dev $interfaz && sudo rm /etc/netplan/* &> /dev/null
+                sudo ip addr add $ip_nueva/$mascara dev $interfaz
+                sudo ip route add default via $puerta_enlace
 
-		echo "Nueva IP configurada en $interfaz: $ip_nueva/$mascara"
-		echo "Puerta de enlace: $puerta_enlace"
-	else
-		echo "No se han realizado cambios en la red"
-	fi
+                echo "Nueva IP configurada en $interfaz: $ip_nueva/$mascara"
+                echo "Puerta de enlace: $puerta_enlace"
+        else
+                echo "No se han realizado cambios en la red"
+        fi
 }
-menu
+
+
 while true; do
 	echo "¡Bienvenido!"
 	read -p "¿Qué acción deseas realizar? (--[1-8]): " orden
@@ -133,7 +183,8 @@ while true; do
 		    break
 		    ;;
 		--2)
-		    desintalacion
+		    desinstalacion
+		    echo 'Desintalación completada con exito.'
 	            break
                     ;;
 		--3)
@@ -168,3 +219,4 @@ while true; do
 	esac
 	read -p "Presione Enter para continuar..."
 done
+
