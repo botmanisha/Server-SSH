@@ -164,7 +164,6 @@ case $formados in
         ;;
     --2)
         echo "Desinstalando SSH con Ansible..."
-        desinstalar_ssh_ansible() {
     read -p "Ingrese la IP del servidor donde desinstalar SSH: " ip_servidor
     read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
 
@@ -186,10 +185,8 @@ case $formados in
         name: openssh-server
         state: absent
 EOL
-
     ansible-playbook -i hosts.ini uninstall_ssh.yml --ask-become-pass
     echo "Servicio SSH desinstalado correctamente con Ansible."
-}
         exit 0
         ;;
     --3)
