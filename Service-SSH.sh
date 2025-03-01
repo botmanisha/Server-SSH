@@ -89,7 +89,43 @@ while true; do
 			done
 			;;
 		--2)
-  			;;
+                        echo " ---------------------------------"
+                        echo " Desinstalación servicio SSH "
+                        echo " ---------------------------------"
+                        echo " --1 Desinstalar con comandos "
+                        echo " --2 Desinstalar con Ansible "
+                        echo " --3 Desinstalar con Docker "
+                        echo " --4 Salir "
+                        echo " ---------------------------------"
+                        while true; do
+                                read -p "Introduce la forma a desinstalar (--[1-4]): " formados
+                                case $formados in
+                                        --1)
+                                                echo "Desinstalando SSH con comandos..."
+						sudo systemctl stop ssh
+                                                sudo apt remove --purge openssh-server -y
+                                                echo "SSH se ha desinstalado correctamente"
+                                                exit 0
+                                                ;;
+                                        --2)
+                                                echo "Desinstalando SSH con Ansible..."
+                                                exit 0
+                                                ;;
+                                        --3)
+                                                echo "Desinstalando SSH con Docker..."
+                                                exit 0
+                                                ;;
+                                        --4)
+                                                echo "Saliendo..."
+                                                exit 0
+                                                ;;
+                                        *)
+                                                echo "Opción inválida, elija --n"
+                                                ;;
+                                esac
+                                read -p "Presione Enter para continuar..."
+                        done
+                        ;;
 		--3)
                 	;;
    		--4)
