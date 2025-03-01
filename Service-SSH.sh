@@ -64,6 +64,35 @@ EOF
       echo "Contenedores en ejecución:"
       docker ps | grep -E 'DOCKER_SSH'
 }
+instalar_ssh_ansible() {
+    read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
+    read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
+
+    if ! ansible --version &> /dev/null; then
+        echo "Ansible no está instalado. Instalándolo..."
+        sudo apt update && sudo apt install ansible -y
+    fi
+    echo "[ssh_servers]" > hosts.ini
+    echo "$SERVER_IP ansible_user=$SERVER_USER ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
+
+    cat > install_ssh.yml <<EOL
+        - name: Instalar y habilitar SSH
+          hosts: ssh_servers
+          become: yes
+          tasks:
+            - name: Instalar OpenSSH Server
+              apt:
+                name: openssh-server
+                state: present
+            - name: Habilitar y arrancar SSH
+              systemd:
+                name: ssh
+                enabled: yes
+                state: started
+        EOL
+    ansible-playbook -i hosts.ini install_ssh.yml --ask-become-pass
+    echo "Servicio SSH instalado correctamente con Ansible."
+}
 instalacion(){
         echo " ---------------------------------"
         echo " Instalación servicio SSH "
@@ -84,6 +113,7 @@ case $forma in
         ;;
     --2)
         echo "Instalando SSH con Ansible..."
+        instalar_ssh_ansible
         exit 0
         ;;
     --3)
