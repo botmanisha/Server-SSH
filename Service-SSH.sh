@@ -13,6 +13,7 @@ ayuda(){
 	echo "-desans                 -Desinstala SSH usando Ansible"
 	echo "-start                  -Inicia el servicio SSH"
 	echo "-stop                   -Detiene el servicio SSH"
+        echo "-status                 -Muestra el estado del servicio SSH"
 	echo "-confip                 -Configura la dirección IP de la interfaz de red"
 	echo "-confssh                -Edita la configuración de SSH"
 	echo "-logs                   -Muestra los logs de SSH"
@@ -38,7 +39,13 @@ menu(){
 	echo " --5 Consulta de logs "
 	echo " --6 Configuración dirección IP "
 	echo " --7 Configuración SSH "
-	echo " --8 Salir "
+        echo " --8 Estado del servicio SSH "
+	echo " --9 Salir "
+        echo " ---------------------------------"
+        echo " --h  ACCESO AYUDA SERVICIO SSH   "
+        echo " ---------------------------------"
+        echo " ./Service-SSH.sh -h              "
+        echo " ./Service-SSH.sh --help          "
 	echo " ---------------------------------"
 }
 instalacion_comando(){
@@ -415,7 +422,7 @@ if [ $# -eq 0 ]; then
 	menu
 	while true; do
 		echo "¡Bienvenido!"
-		read -p "¿Qué acción deseas realizar? (--[1-8]): " orden
+		read -p "¿Qué acción deseas realizar? (--[1-9]): " orden
 		case $orden in
 			--1)
 				instalacion
@@ -444,18 +451,27 @@ if [ $# -eq 0 ]; then
 
 			--6)
         			configurar_ip
-				break
-				;;
+                                break
+                                ;;
 
  			--7)
                 		editar_configuracion
 				break
         	  		;;
+                        --8)
+                                systemctl status ssh
+                                break
+                                ;;
 
-        		--8)
+        		--9)
 				echo  "Saliendo..."
 				break
                 		;;
+
+			--h)
+				ayuda
+                                break
+                                ;;
 
 			*)
 		   		echo "Opción inválida, elija --n"
@@ -512,6 +528,10 @@ else
 		-logs)
 			logs
 			;;
+
+		-status)
+                        systemctl status ssh
+                        ;;
 
 		*)
 			echo "Opción no válida. Usa -h o --help para ver las opciones disponibles."
