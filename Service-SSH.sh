@@ -77,15 +77,6 @@ EOF
 
 instalar_ssh_ansible() {
 read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
-read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
-if ! systemctl is-active --quiet ssh; then
-     echo "El servicio SSH no está instalado o no está activo. Instalando SSH..."
-     sudo apt update && sudo apt install openssh-server -y
-     echo "SSH ha sido instalado correctamente."
-else
-     echo "El servicio SSH ya está instalado y activo."
-fi
-
 if ! sudo ufw status | grep -q "Status: active"; then
      echo "UFW no está activo. Activando UFW..."
      sudo ufw enable
@@ -105,11 +96,14 @@ fi
 
 if ! ansible --version &> /dev/null; then
      echo "Ansible no está instalado. Instalándolo..."
+     sudo apt install -y software-properties-common
+     sudo apt-add-repository --yes --update ppa:ansible/ansible
      sudo apt update && sudo apt install ansible -y
      echo "Ansible ha sido instalado correctamente."
 fi
-     echo "[ssh_servers]" > hosts.ini
-     echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
+    ip_local=${ip_servidor:-localhost}
+    echo "[ssh_servers]" > hosts.ini
+    echo "$ip_local ansible_connection=local" >> hosts.ini
      cat > install_ssh.yml <<EOL
 - name: Instalar y habilitar SSH
   hosts: ssh_servers
@@ -173,6 +167,30 @@ esac
 read -p "Presione Enter para continuar..."
 done
 }
+desinstalacion_ansible(){
+      echo "Desinstalando SSH con Ansible..."
+read -p "Ingrese la IP del servidor donde instalar SSH: " ip_servidor
+     ip_local=${ip_servidor:-localhost}
+     echo "[ssh_servers]" > hosts.ini
+     echo "$ip_local ansible_connection=local" >> hosts.ini
+   cat > uninstall_ssh.yml <<EOL
+- name: Desinstalar SSH
+  hosts: ssh_servers
+  become: yes
+  tasks:
+    - name: Detener y deshabilitar SSH
+      systemd:
+        name: ssh
+        state: stopped
+        enabled: no
+    - name: Desinstalar OpenSSH Server
+      apt:
+        name: openssh-server
+        state: absent
+EOL
+    ansible-playbook -i hosts.ini uninstall_ssh.yml --ask-become-pass
+      echo "Servicio SSH desinstalado correctamente con Ansible."
+}
 desinstalacion(){
         echo " ---------------------------------"
         echo " Desinstalación servicio SSH "
@@ -194,30 +212,7 @@ case $formados in
         ;;
 
     --2)
-        echo "Desinstalando SSH con Ansible..."
-    read -p "Ingrese la IP del servidor donde desinstalar SSH: " ip_servidor
-    read -p "Ingrese el usuario SSH del servidor: " usuario_ssh
-
-    echo "[ssh_servers]" > hosts.ini
-    echo "$ip_servidor ansible_user=$usuario_ssh ansible_ssh_private_key_file=~/.ssh/id_rsa" > hosts.ini
-
-    cat > uninstall_ssh.yml <<EOL
-- name: Desinstalar SSH
-  hosts: ssh_servers
-  become: yes
-  tasks:
-    - name: Detener y deshabilitar SSH
-      systemd:
-        name: ssh
-        state: stopped
-        enabled: no
-    - name: Desinstalar OpenSSH Server
-      apt:
-        name: openssh-server
-        state: absent
-EOL
-    ansible-playbook -i hosts.ini uninstall_ssh.yml --ask-become-pass
-    echo "Servicio SSH desinstalado correctamente con Ansible."
+	desinstalacion_ansible
         exit 0
         ;;
 
@@ -390,21 +385,21 @@ while true; do
 	           ;;
 
 		--6)
-		    configurar_ip
-		    break
-		    ;;
+        	   configurar_ip
+		   break
+		   ;;
 
-		--7)
-            editar_configuracion
-		    ;;
+ 		--7)
+                   editar_configuracion
+          	   ;;
 
         	--8)
-		    echo  "Saliendo..."
-		    break
-                    ;;
+		   echo  "Saliendo..."
+		   break
+                   ;;
                   *)
-		    echo "Opción inválida, elija --n"
-	            ;;
+		   echo "Opción inválida, elija --n"
+	           ;;
 	esac
 	read -p "Presione Enter para continuar..."
 done
