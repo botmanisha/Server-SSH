@@ -267,6 +267,55 @@ else
 fi
 }
 
+editar_configuracion(){
+	echo " ---------------------------------"
+        echo " Editar Configuración SSH "
+        echo " ---------------------------------"
+        echo " --1 Cambiar el puerto SSH "
+        echo " --2 Habilitar/Deshabilitar autenticación por contraseña "
+	echo " --3 Abrir el archivo de configuracion "
+        echo " --4 Salir "
+        echo " ---------------------------------"
+while true; do
+read -p "Seleccione una opcion a configurar (--[1-4]): " confi
+case $confi in
+	--1)
+	    read -p "Ingrese el nuevo puerto SSH: " puerto
+	    sudo sed -i "s/^#Port [0-9]\+/Port $puerto/" /etc/ssh/sshd_config
+	    echo "El puerto ha sido cambiado a $puerto"
+	    sudo systemctl restart ssh
+            exit 0
+	    ;;
+	--2)
+	    read -p "¿Desea habilitar la autenticación por contraseña? (Y/N): " auten
+            if [[ $auten == "Y" || $auten == "y" ]]; then
+                sudo sed -i "s/^#\?PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
+                echo "Autenticación por contraseña habilitada."
+		sudo systemctl restart ssh
+            else
+                sudo sed -i "s/^#\?PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
+                echo "Autenticación por contraseña deshabilitada."
+		sudo systemctl restart ssh
+            fi
+            exit 0
+	    ;;
+	--3)
+	    sudo nano /etc/ssh/sshd_config
+	    sudo systemctl restart ssh
+	    exit 0
+	    ;;
+	--4)
+	    echo "Saliendo..."
+            exit 0
+	    ;;
+	  *)
+	    echo "Opción inválida, elija --n"
+	    ;;
+esac
+read -p "Presione Enter para continuar..."
+done
+}
+
 logs(){
         echo " ---------------------------------"
         echo " Consulta de logs "
@@ -346,7 +395,7 @@ while true; do
 		    ;;
 
 		--7)
-
+            editar_configuracion
 		    ;;
 
         	--8)
