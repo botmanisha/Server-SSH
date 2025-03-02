@@ -347,42 +347,69 @@ editar_configuracion(){
 }
 logs(){
 	echo " ---------------------------------"
-	echo " Consulta de logs "
-	echo " ---------------------------------"
-	echo " --1 Logs por fecha "
-	echo " --2 Logs por tipo "
-	echo " --3 Salir "
-	echo " ---------------------------------"
-	while true; do
-		read -p "Introduce la forma a desinstalar (--[1-3]): " consulta
-		case $consulta in
-			--1)
-				echo "Logs por fecha: "
-				echo " ---------------------------------"
-				read -p "Introduce la fecha (YYYY-MM-DD): " fecha
-				journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
-				exit 0
-				;;
+        echo " Consulta de logs "
+        echo " ---------------------------------"
+        echo " --1 Logs por fecha "
+        echo " --2 Logs por tipo "
+        echo " --3 Salir "
+        echo " ---------------------------------"
+        while true; do
+        read -p "Elige el método para filtrar logs (--[1-3]): " consulta
+        case $consulta in
+            --1)
+                echo "Logs por fecha: "
+                echo " ---------------------------------"
+                read -p "Introduce la fecha (YYYY-MM-DD): " fecha
+                journalctl -u ssh --since "$fecha 00:00:00" --until "$fecha 23:59:59"
+                ;;
+            --2)
+                echo "Logs por tipo: "
+                echo "-------------------------------------------------------------"
+                echo "Tipos de log"
+                echo "emerg: Emergencias (el sistema no funciona)"
+                echo "alert: Condiciones críticas que requieren atención inmediata"
+                echo "err: Errores"
+                echo "warning: Advertencias"
+                echo "notice: Notificaciones"
+                echo "info: Información"
+                echo "debug: Depuración"
+                echo "-------------------------------------------------------------"
+                echo "Para salir introduzca: exit"
+                echo "-------------------------------------------------------------"
+                while true;do
+                read -p "Introduce el tipo de log (error, warning, info): " tipo
+                if [[ "$tipo" == "exit" ]]; then
+                        break
+                fi
+                echo "Buscando logs con el tipo '$tipo': "
+                case $tipo in
+                        emerg)   priority=0 ;;
+                        alert)   priority=1 ;;
+                        crit)    priority=2 ;;
+                        err)     priority=3 ;;
+                        warning) priority=4 ;;
+                        notice)  priority=5 ;;
+                        info)    priority=6 ;;
+                        debug)   priority=7 ;;
+                        *)       echo "Tipo de log no válido"
+                                 continue
+                                 ;;
+                esac
+                journalctl -u ssh --priority="$tipo"
+                read -p "Presione Enter para continuar..."
+                done
+                ;;
+            --3)
+                echo "Saliendo..."
+                break
+                ;;
+            *)
+                echo "Opción inválida, elija --n"
+                ;;
+        esac
+        read -p "Presione Enter para continuar..."
+    	done
 
-			--2)
-				echo "Logs por tipo: "
-				echo " ---------------------------------"
-				read -p "Introduce el tipo de log (error, warning, info): " tipo
-				journalctl -u ssh | grep -i "$tipo"
-				exit 0
-				;;
-
-			--3)
-				echo "Saliendo..."
-				exit 0
-				;;
-
-			*)
-				echo "Opción inválida, elija --n"
-				;;
-		esac
-		read -p "Presione Enter para continuar..."
-	done
 }
 if [ $# -eq 0 ]; then
 	menu
